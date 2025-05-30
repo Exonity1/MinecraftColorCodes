@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Minecraft Chat Formatter</title>
+
+  <!-- Minecraft Font from cdnfonts.com -->
+  <link href="https://fonts.cdnfonts.com/css/minecraft-3" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Minecraft', monospace;
+      display: flex;
+      height: 100vh;
+      margin: 0;
+      background-color: #121212;
+      color: #e0e0e0;
+    }
+
+    .panel {
+      flex: 1;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    .left {
+      border-right: 2px solid #333;
+    }
+
+    textarea {
+      width: 100%;
+      height: 250px;
+      font-size: 18px;
+      padding: 10px;
+      background: #1e1e1e;
+      color: #f5f5f5;
+      border: 1px solid #444;
+      resize: none;
+      font-family: 'Minecraft', monospace;
+    }
+
+    .buttons {
+      margin-bottom: 15px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    .buttons button {
+      padding: 6px 10px;
+      font-size: 16px;
+      cursor: pointer;
+      border: none;
+      border-radius: 4px;
+      font-family: 'Minecraft', monospace;
+    }
+
+    .output {
+      background: #1e1e1e;
+      color: white;
+      padding: 20px;
+      white-space: pre-wrap;
+      font-family: 'Minecraft', monospace;
+      font-size: 18px;
+      min-height: 250px;
+      border: 1px solid #444;
+    }
+
+    .obfuscated {
+      display: inline-block;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="panel left">
+    <div class="buttons" id="colorButtons"></div>
+    <div class="buttons" id="formatButtons"></div>
+    <textarea id="inputText" placeholder="Schreibe hier deinen Minecraft-Text mit Farb- und Formatierungscodes (&)..."></textarea>
+  </div>
+
+  <div class="panel right">
+    <div class="output" id="outputText"></div>
+  </div>
+
+  <script>
+    const colorMap = {
+      '0': '#000000', '1': '#0000AA', '2': '#00AA00', '3': '#00AAAA',
+      '4': '#AA0000', '5': '#AA00AA', '6': '#FFAA00', '7': '#AAAAAA',
+      '8': '#555555', '9': '#5555FF', 'a': '#55FF55', 'b': '#55FFFF',
+      'c': '#FF5555', 'd': '#FF55FF', 'e': '#FFFF55', 'f': '#FFFFFF',
+      'r': '#FFFFFF'
+    };
+
+    const formatMap = {
+      'l': 'font-weight: bold',
+      'o': 'font-style: italic',
+      'n': 'text-decoration: underline',
+      'm': 'text-decoration: line-through',
+      'k': 'obfuscated'
+    };
+
+    const buttonsContainer = document.getElementById("colorButtons");
+    const formatButtonsContainer = document.getElementById("formatButtons");
+    const input = document.getElementById("inputText");
+    const output = document.getElementById("outputText");
+
+    for (const code in colorMap) {
+      const btn = document.createElement("button");
+      btn.textContent = "&" + code;
+      btn.style.backgroundColor = colorMap[code];
+      btn.style.color = (['0', '1', '2', '4', '5', '8', '9'].includes(code)) ? '#fff' : '#000';
+      btn.onclick = () => insertAtCursor('&' + code);
+      buttonsContainer.appendChild(btn);
+    }
+
+    for (const code in formatMap) {
+      const btn = document.createElement("button");
+      btn.textContent = "&" + code;
+      btn.style.backgroundColor = '#333';
+      btn.style.color = '#fff';
+      btn.onclick = () => insertAtCursor('&' + code);
+      formatButtonsContainer.appendChild(btn);
+    }
+
+    function insertAtCursor(code) {
+      const start = input.selectionStart;
+      const end = input.selectionEnd;
+      const text = input.value;
+      input.value = text.slice(0, start) + code + text.slice(end);
+      input.focus();
+      input.selectionStart = input.selectionEnd = start + code.length;
+      updatePreview();
+    }
+
+    function obfuscateChar() {
+      const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      return chars[Math.floor(Math.random() * chars.length)];
+    }
+
+    function animateObfuscatedText() {
+      const obfuscatedElements = document.querySelectorAll('.obfuscated');
+      obfuscatedElements.forEach(el => {
+        el.textContent = obfuscateChar();
+      });
+    }
+
+    setInterval(animateObfuscatedText, 50);
+
+    function updatePreview() {
+      const text = input.value;
+      let html = '';
+      let i = 0;
+      let currentColor = '#FFFFFF';
+      let styles = [];
+      let isObfuscated = false;
+
+      while (i < text.length) {
+        if (text[i] === '&' && i + 1 < text.length) {
+          const code = text[i + 1].toLowerCase();
+
+          if (colorMap[code]) {
+            currentColor = colorMap[code];
+            styles = [];
+            isObfuscated = false;
+          } else if (code === 'r') {
+            currentColor = '#FFFFFF';
+            styles = [];
+            isObfuscated = false;
+          } else if (formatMap[code]) {
+            if (code === 'k') {
+              isObfuscated = true;
+            } else {
+              styles.push(formatMap[code]);
+            }
+          }
+
+          i += 2;
+        } else {
+          let styleStr = `color: ${currentColor}; ${styles.join('; ')}`;
+          let char = isObfuscated ? obfuscateChar() : text[i];
+          const span = `<span class="${isObfuscated ? 'obfuscated' : ''}" style="${styleStr}">${char}</span>`;
+          html += span;
+          i++;
+        }
+      }
+
+      output.innerHTML = html;
+    }
+
+    input.addEventListener("input", updatePreview);
+    updatePreview();
+  </script>
+
+</body>
+</html>
